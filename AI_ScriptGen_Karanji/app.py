@@ -77,11 +77,15 @@ def update_recent_files(output_filename):
     session["last_generated_file"] = output_filename
 
 @app.route('/')
-def index():
+def home():
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    generated_file = session.pop("last_generated_file", None)  # <== pop instead of get
+    generated_file = session.pop("last_generated_file", None)
     recent_files = session.get("recent_files", [])
 
     return render_template(
@@ -89,6 +93,7 @@ def index():
         generated_file=generated_file,
         recent_files=recent_files
     )
+
 
 
 @app.route('/generate', methods=['POST'])
@@ -99,22 +104,22 @@ def generate():
 
     if not check_rate_limit():
         flash("Rate limit exceeded. Please try again later.", "error")
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
     # Enforce upload limit for free users
     if session['plan'] == 'free' and session['doc_upload_count'] >= 3:
         flash("Free plan limit reached. Please upgrade to premium.", "danger")
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
     file = request.files.get('file')
     if not file or file.filename.strip() == '':
         flash("No file selected.", "error")
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
     filename = secure_filename(file.filename)
     if not allowed_file(filename):
         flash("Invalid file type. Only DOCX, PDF, and PPTX are allowed.", "error")
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
     ext = Path(filename).suffix
     unique_filename = f"{Path(filename).stem}_{uuid.uuid4().hex[:8]}{ext}"
@@ -124,7 +129,7 @@ def generate():
     if not file_signature_check(filepath, ext):
         os.remove(filepath)
         flash("File signature does not match file type.", "error")
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
     extracted_text = extract_text_from_file(filepath)
 
@@ -134,11 +139,11 @@ def generate():
     except Exception as e:
         logging.exception("Script generation failed:")
         flash("Script generation failed. Please try again.", "error")
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
     if docx_path is None:
         flash(markdown or "Generation failed.", "error")
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
     output_filename = Path(docx_path).name
     update_recent_files(output_filename)
@@ -148,7 +153,7 @@ def generate():
     session['doc_upload_count'] += 1
 
     flash("Script generated successfully!", "success")
-    return redirect(url_for('index'))
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/outputs/<filename>')
@@ -167,7 +172,7 @@ def view_table(filename):
     filepath = os.path.join(OUTPUT_FOLDER, filename)
     if not os.path.exists(filepath):
         flash('File not found.', 'error')
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     # Preprocess: replace <...> with _..._ for HTML preview
@@ -314,7 +319,7 @@ def login():
             session['username'] = user['username']
             session['plan'] = user['plan']
             session['doc_upload_count'] = user['doc_upload_count']
-            return redirect(url_for('index'))
+            return redirect(url_for('dashboard'))
         else:
             flash('Invalid credentials', 'danger')
     return render_template('login.html')
@@ -333,7 +338,7 @@ def upgrade():
     users_col.update_one({"_id": ObjectId(session['user_id'])}, {"$set": {"plan": "premium"}})
     session['plan'] = 'premium'
     flash('You have been upgraded to premium!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('dashboard'))
 
 @app.route('/admin')
 def admin_dashboard():
