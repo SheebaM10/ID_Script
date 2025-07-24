@@ -1,0 +1,6 @@
+ flask
+python-docx
+python-pptx
+pdfminer.six
+openai
+python-dotenv

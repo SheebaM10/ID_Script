@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Script Table Preview - {{ filename }}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap">
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      padding: 2rem 2.5rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #2563eb;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 12px 10px;
+      word-break: break-word;
+      white-space: pre-line;
+      vertical-align: top;
+      font-size: 1rem;
+    }
+    th {
+      background: #f1f5f9;
+      color: #2563eb;
+      font-weight: 600;
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.7rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: none;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #1d4ed8;
+    }
+    .btn-secondary {
+      background: #fff;
+      color: #2563eb;
+      border: 1px solid #2563eb;
+    }
+    .btn-secondary:hover {
+      background: #f1f5f9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" aria-label="Script Table Preview">
+    <div class="actions">
+      <a href="/" class="btn btn-secondary" aria-label="Back to Home">&larr; Back to Home</a>
+      <a href="{{ url_for('download_file', filename=filename) }}" class="btn" aria-label="Download DOCX">Download DOCX</a>
+    </div>
+    <h1>Script Table Preview</h1>
+    <div class="table-wrapper">
+      {% if table_html.strip() %}
+        {{ table_html|safe }}
+      {% else %}
+        <div style="color: #ef4444; font-weight: 500;">No table found or markdown is malformed.</div>
+      {% endif %}
+    </div>
+    <script>
+      // Replace single \n in table cells with <br> for line breaks
+      document.querySelectorAll('td, th').forEach(function(cell) {
+        cell.innerHTML = cell.innerHTML.replace(/(?<!\\)\\n/g, '<br>');
+      });
+    </script>
+  </div>
+  <style>
+    @media print {
+      body, .container {
+        background: #fff !important;
+        color: #000 !important;
+        box-shadow: none !important;
+      }
+      .actions, .btn, .btn-secondary {
+        display: none !important;
+      }
+      table {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</body>
+</html> 

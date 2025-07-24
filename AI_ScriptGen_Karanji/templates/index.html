@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Karanji's AI Script Generator</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- Intro Video -->
+  <div id="loading-screen">
+    <video id="introVideo" autoplay muted playsinline>
+      <source src="{{ url_for('static', filename='intro.mp4') }}" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <img src="{{ url_for('static', filename='images/Karanji_logo.png') }}" class="logo" alt="Karanji Logo">
+      <h1>Karanji's AI Script Generator</h1>
+    </div>
+  </header>
+
+<p style="text-align:center;">You have used {{ session['doc_upload_count'] }} of 3 uploads (Free Plan)</p>
+
+  <main>
+    <div class="container" role="main" aria-label="Script Generator">
+      <div class="card-header">
+        <h2>Let's Transform Documents into Instructional Scripts</h2>
+        <p class="helper-text">Supported: .docx, .pdf, .pptx</p>
+      </div>
+
+      <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div id="toast-container" aria-live="polite" aria-atomic="true">
+              {% for category, message in messages %}
+                  <div class="toast {{ 'error-toast' if category == 'error' else 'success-toast' }}" role="alert">
+                  <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }}"></i>
+                  <span>{{ message }}</span>
+                  <button class="toast-close" aria-label="Close">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form id="uploadForm" action="/generate" method="post" enctype="multipart/form-data" aria-label="Upload Form">
+          <div class="drag-area" id="dragArea" tabindex="0" aria-label="Drag and drop area">
+            <i class="fas fa-cloud-upload-alt fa-2x heartbeat" aria-hidden="true"></i>
+            <p>Drag & Drop or Click to Select Your Document</p>
+            <p class="file-name" id="fileName"></p>
+            <input type="file" name="file" id="fileInput" accept=".docx,.pdf,.pptx" required hidden aria-required="true" aria-label="File input">
+          </div>
+
+          <div class="progress-container" id="progressContainer" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-info">
+              <span id="progressStatus">Processing your document...</span>
+              <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+          </div>
+          {% if generated_file %}
+          {% set script_ready = false %}
+          {% for category, message in messages %}
+            {% if category == 'success' and 'Script generated successfully!' in message %}
+              {% set script_ready = true %}
+            {% endif %}
+          {% endfor %}
+          {% if script_ready %}
+          <div class="success-message" style="text-align:center; margin-bottom:0.5rem; color: var(--success); font-weight: 500; font-size: 1.1rem; animation: fadeIn 0.7s;">
+            Your script is ready! Download or preview below.
+          </div>
+          <div class="action-buttons" id="actionButtons">
+              <a class="btn btn-primary" href="{{ url_for('download_file', filename=generated_file) }}">
+                <i class="fas fa-download"></i> Download Script
+              </a>
+              <a class="btn btn-secondary" href="{{ url_for('preview_file', filename=generated_file) }}" target="_blank">
+                <i class="fas fa-eye"></i> Preview
+              </a>
+            </div>
+          {% elif recent_files %}
+          <div class="action-buttons" id="actionButtons">
+              {% for file in recent_files %}
+                <a class="btn btn-primary" href="{{ url_for('download_file', filename=file) }}">
+                  <i class="fas fa-download"></i> Download {{ file }}
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% endif %}
+          <button type="submit" class="btn btn-primary" id="submitBtn"
+                  aria-label="Generate Instructional Script"
+                  {% if disable_submit %}disabled title="Upgrade to premium to upload more files."{% endif %}>
+            <i class="fas fa-rocket"></i> Generate Instructional Script
+          </button>
+
+          {% if disable_submit %}
+            <div style="text-align:center; margin-top:1rem; color:crimson;">
+              Free plan limit reached. <a href="{{ url_for('upgrade') }}">Upgrade to premium</a> to continue.
+            </div>
+          {% endif %}
+
+
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Created with <span class="heartbeat" aria-label="love">❤️</span> by Gen AI Team @ Karanji Infotech</p>
+  </footer>
+
+  <script>
+    // Intro video fade out, only show on first visit
+    const introVideo = document.getElementById('introVideo');
+    const loadingScreen = document.getElementById('loading-screen');
+    if (!sessionStorage.getItem('introPlayed')) {
+      introVideo.addEventListener('ended', () => {
+        loadingScreen.classList.add('fade-out');
+        sessionStorage.setItem('introPlayed', 'true');
+      });
+      setTimeout(() => {
+        loadingScreen.classList.add('fade-out');
+        sessionStorage.setItem('introPlayed', 'true');
+      }, 5000);
+    } else {
+      loadingScreen.classList.add('fade-out');
+    }
+
+    // Drag and drop
+    const dragArea = document.getElementById("dragArea");
+    const fileInput = document.getElementById("fileInput");
+    const fileName = document.getElementById("fileName");
+    const submitBtn = document.getElementById("submitBtn");
+    const form = document.getElementById("uploadForm");
+    const progressContainer = document.getElementById("progressContainer");
+    const progressFill = document.getElementById("progressFill");
+    const progressPercent = document.getElementById("progressPercent");
+    const progressStatus = document.getElementById("progressStatus");
+
+    dragArea.addEventListener("click", () => fileInput.click());
+    dragArea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") fileInput.click();
+    });
+
+    ['dragenter', 'dragover'].forEach(evt => {
+      dragArea.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        dragArea.classList.add("highlight");
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+      dragArea.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        dragArea.classList.remove("highlight");
+      });
+    });
+
+    // File size validation (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    fileInput.addEventListener('change', function () {
+      if (this.files.length) {
+        if (this.files[0].size > MAX_FILE_SIZE) {
+          alert('File is too large. Maximum allowed size is 10MB.');
+          fileInput.value = '';
+          fileName.textContent = '';
+          submitBtn.disabled = true;
+          return;
+        }
+        handleFiles(this.files);
+      }
+    });
+    dragArea.addEventListener('drop', e => {
+      const files = e.dataTransfer.files;
+      if (files.length) {
+        if (files[0].size > MAX_FILE_SIZE) {
+          alert('File is too large. Maximum allowed size is 10MB.');
+          fileInput.value = '';
+          fileName.textContent = '';
+          submitBtn.disabled = true;
+          return;
+        }
+        fileInput.files = files;
+        handleFiles(files);
+      }
+    });
+
+    function handleFiles(files) {
+      const file = files[0];
+      fileName.textContent = file.name;
+      fileName.style.display = 'block';
+      submitBtn.disabled = false;
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      progressContainer.style.display = 'block';
+      progressFill.style.width = '0%';
+      progressPercent.textContent = '0%';
+      progressStatus.textContent = 'Uploading document...';
+      const formData = new FormData(form);
+      fetch('/generate_async', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          progressStatus.textContent = data.error;
+          submitBtn.disabled = false;
+          return;
+        }
+        const taskId = data.task_id;
+        pollProgress(taskId);
+      });
+    });
+
+    function pollProgress(taskId) {
+      fetch(`/progress/${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+          progressFill.style.width = data.progress + '%';
+          progressPercent.textContent = data.progress + '%';
+          progressStatus.textContent = data.status;
+          progressContainer.setAttribute('aria-valuenow', data.progress);
+          if (data.progress < 100) {
+            setTimeout(() => pollProgress(taskId), 700);
+          } else if (data.status === 'Done' && data.file) {
+            // Show loading spinner before reload
+            document.body.innerHTML += '<div id="page-spinner" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;background:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center;"><div style="border:8px solid #f3f3f3;border-top:8px solid #2563eb;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;"></div></div>';
+            setTimeout(() => window.location.reload(), 600);
+          } else if (data.status === 'Failed') {
+            submitBtn.disabled = false;
+            progressStatus.textContent = data.error || 'Script generation failed.';
+          }
+        })
+        .catch(() => {
+          progressStatus.textContent = 'Lost connection to server.';
+          submitBtn.disabled = false;
+        });
+    }
+    
+
+    // Toast close button and auto-hide
+    document.addEventListener('click', function(e) {
+      if(e.target.classList.contains('toast-close')) {
+        e.target.parentElement.style.display = 'none';
+      }
+    });
+    // Auto-hide toast after 4 seconds
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        document.querySelectorAll('.toast').forEach(function(toast) {
+          toast.style.display = 'none';
+        });
+      }, 4000);
+    });
+  </script>
+  
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .action-buttons {
+      display: flex !important;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    .action-buttons .btn {
+      min-width: 160px;
+      max-width: 240px;
+      width: auto;
+      flex: 0 1 auto;
+      font-size: 1rem;
+      padding: 0.85rem 1.5rem;
+      box-sizing: border-box;
+    }
+    @media (max-width: 768px) {
+      .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+      }
+      .action-buttons .btn {
+        max-width: 100%;
+        min-width: 0;
+        width: 100%;
+      }
+    }
+    #page-spinner div {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #2563eb;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+  </style>
+</body>
+</html>
