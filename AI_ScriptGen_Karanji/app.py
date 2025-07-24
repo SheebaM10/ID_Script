@@ -1,5 +1,6 @@
 from bson import ObjectId
 from flask import Flask, request, render_template, send_from_directory, flash, redirect, url_for, session, jsonify
+import pymongo
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
@@ -284,7 +285,7 @@ def progress(task_id):
 from pymongo import MongoClient
 
 # MongoDB connection
-client = MongoClient("mongodb://admin:YourStrongPassword123@127.0.0.1:27017/admin")
+client = pymongo.MongoClient("mongodb://localhost:27017")
 db = client['subscription_app']
 users_col = db['users']
 
