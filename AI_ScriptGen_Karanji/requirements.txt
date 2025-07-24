@@ -4,3 +4,6 @@ python-pptx
 pdfminer.six
 openai
 python-dotenv
+pymongo
+markdown
+google-generativeai
