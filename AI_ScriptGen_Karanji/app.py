@@ -294,7 +294,7 @@ def progress(task_id):
 from pymongo import MongoClient
 
 # MongoDB connection
-client = pymongo.MongoClient("mongodb://myUser:myPassword@13.235.78.101:27017/subscription_app?authSource=admin")
+# client = pymongo.MongoClient("mongodb://myUser:myPassword@13.235.78.101:27017/subscription_app?authSource=admin")
 # MongoDB connection
 # client = pymongo.MongoClient("mongodb://myUser:myPassword@13.235.78.101:27017/subscription_app?authSource=admin")
 client = pymongo.MongoClient("mongodb://myUser:myPassword@13.204.31.17:27017/subscription_app?authSource=admin")
