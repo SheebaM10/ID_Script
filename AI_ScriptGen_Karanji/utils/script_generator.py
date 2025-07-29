@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import google.generativeai as genai
 from dotenv import load_dotenv
 import re
@@ -10,7 +11,8 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 model = genai.GenerativeModel("gemini-2.0-flash")
 
-def generate_script(content, output_dir):
+def generate_script(content, output_dir, original_filename=None):
+
     prompt = build_prompt(content)
 
     try:
@@ -29,9 +31,16 @@ def generate_script(content, output_dir):
         welcome_title = structured_script_data[0]['on_screen_text'].split('\n')[0].strip()
     else:
         welcome_title = generate_title(content)
-    # Sanitize for filename
-    safe_title = ''.join(c for c in welcome_title if c.isalnum() or c in (' ', '_', '-')).rstrip()
+
+    # Prefer original file name stem if provided
+    if original_filename:
+        topic_name = Path(original_filename).stem
+    else:
+        topic_name = welcome_title
+
+    safe_title = ''.join(c for c in topic_name if c.isalnum() or c in (' ', '_', '-')).rstrip()
     file_base = safe_title.replace(' ', '_')[:40] or 'Instructional_Script'
+
     output_path = os.path.join(output_dir, f"{file_base}.docx")
     try:
         export_to_docx_table(structured_script_data, output_path, welcome_title)

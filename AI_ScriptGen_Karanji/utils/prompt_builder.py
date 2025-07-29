@@ -60,6 +60,10 @@ Do NOT add explanations, just the markdown table.
 | Slide Number | Voice-Over Script | On-Screen Text | Video Description | Image/Infographic Suggestion |
 
 ---
+prompt += (
+    "IMPORTANT: If the content contains [IMAGE] or visual markers, include those visuals meaningfully in the script and suggest appropriate images. "If you see [IMAGE FOUND IN DOCUMENT] or [IMAGE FOUND ON SLIDE], suggest an appropriate visual for that location.\n\n"
+\n\n"
+)
 
 **Step 2: Instructional Slides**
 
@@ -75,7 +79,6 @@ Once the scenario is complete, continue with the instructional slides in the fol
    - VD: Soft animation, logo, music
 
 2. **Scenario Slides**
-   - Each slide must have a transition line at the end.
    - VD: Body language or scene description.
    - The **first scenario slide** must have the following On-Screen Text (OST):  
      "**Scenario**\\nBefore we begin, let us watch a scenario."

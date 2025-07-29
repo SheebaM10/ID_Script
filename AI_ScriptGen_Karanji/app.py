@@ -86,7 +86,8 @@ def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    generated_file = session.pop("last_generated_file", None)
+    generated_file = session.get("last_generated_file")
+
     recent_files = session.get("recent_files", [])
 
     return render_template(
@@ -108,7 +109,7 @@ def generate():
         return redirect(url_for('dashboard'))
 
     # Enforce upload limit for free users
-    if session['plan'] == 'free' and session['doc_upload_count'] >= 3:
+    if session['plan'] == 'free' and session['doc_upload_count'] >= 10:
         flash("Free plan limit reached. Please upgrade to premium.", "danger")
         return redirect(url_for('dashboard'))
 
@@ -136,7 +137,8 @@ def generate():
 
     try:
         logging.info("Calling Gemini API for script generation...")
-        markdown, docx_path = generate_script(extracted_text, OUTPUT_FOLDER)
+        markdown, docx_path = generate_script(extracted_text, OUTPUT_FOLDER, original_filename=filename)
+
     except Exception as e:
         logging.exception("Script generation failed:")
         flash("Script generation failed. Please try again.", "error")
@@ -189,7 +191,7 @@ def generate_async():
     if not check_rate_limit():
         return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
 
-    if session['plan'] == 'free' and session['doc_upload_count'] >= 3:
+    if session['plan'] == 'free' and session['doc_upload_count'] >= 10:
         return jsonify({'error': 'Free plan limit reached. Upgrade to premium.'}), 403
 
     file = request.files.get('file')
@@ -243,7 +245,7 @@ def generate_async():
     return jsonify({'task_id': task_id})
 
 
-def generate_script_with_progress(content, output_dir, task_id):
+def generate_script_with_progress(content, output_dir, task_id, original_filename=None):
     prompt = build_prompt(content)
     output_path = os.path.join(output_dir, "generated_script.docx")
     try:
@@ -260,6 +262,13 @@ def generate_script_with_progress(content, output_dir, task_id):
     try:
         progress_dict[task_id] = {'progress': 85, 'status': 'Exporting to DOCX...'}
         generated_title = generate_title(content)
+        if original_filename:
+            filename = Path(original_filename).stem
+        else:
+            filename = generated_title
+        safe_title = ''.join(c for c in filename if c.isalnum() or c in (' ', '_', '-')).rstrip()
+        file_base = safe_title.replace(' ', '_')[:40] or 'Instructional_Script'
+        output_path = os.path.join(output_dir, f"{file_base}.docx")
         export_to_docx_table(structured_script_data, output_path, generated_title)
     except Exception as e:
         return f"Export Error: {str(e)}", None
@@ -286,6 +295,10 @@ from pymongo import MongoClient
 
 # MongoDB connection
 client = pymongo.MongoClient("mongodb://myUser:myPassword@13.235.78.101:27017/subscription_app?authSource=admin")
+# MongoDB connection
+# client = pymongo.MongoClient("mongodb://myUser:myPassword@13.235.78.101:27017/subscription_app?authSource=admin")
+client = pymongo.MongoClient("mongodb://myUser:myPassword@13.204.31.17:27017/subscription_app?authSource=admin")
+# client = pymongo.MongoClient("mongodb://localhost:27017/")
 
 db = client['subscription_app']
 users_col = db['users']

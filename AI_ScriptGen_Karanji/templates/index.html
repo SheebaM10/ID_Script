@@ -25,7 +25,7 @@
     </div>
   </header>
 
-<p style="text-align:center;">You have used {{ session['doc_upload_count'] }} of 3 uploads (Free Plan)</p>
+<p style="text-align:center;">You have used {{ session['doc_upload_count'] }} of 10 uploads (Free Plan)</p>
 
   <main>
     <div class="container" role="main" aria-label="Script Generator">
@@ -66,35 +66,21 @@
               <div class="progress-bar-fill" id="progressFill"></div>
             </div>
           </div>
-          {% if generated_file %}
-          {% set script_ready = false %}
-          {% for category, message in messages %}
-            {% if category == 'success' and 'Script generated successfully!' in message %}
-              {% set script_ready = true %}
-            {% endif %}
-          {% endfor %}
-          {% if script_ready %}
-          <div class="success-message" style="text-align:center; margin-bottom:0.5rem; color: var(--success); font-weight: 500; font-size: 1.1rem; animation: fadeIn 0.7s;">
-            Your script is ready! Download or preview below.
-          </div>
-          <div class="action-buttons" id="actionButtons">
-              <a class="btn btn-primary" href="{{ url_for('download_file', filename=generated_file) }}">
-                <i class="fas fa-download"></i> Download Script
-              </a>
-              <a class="btn btn-secondary" href="{{ url_for('preview_file', filename=generated_file) }}" target="_blank">
-                <i class="fas fa-eye"></i> Preview
-              </a>
+          {% set latest_file = session.get('last_generated_file') or (recent_files[-1] if recent_files else None) %}
+          {% if latest_file %}
+            <div class="success-message" style="text-align:center; margin-bottom:0.5rem; color: var(--success); font-weight: 500; font-size: 1.1rem; animation: fadeIn 0.7s;">
+              Your script is ready! Download below.
             </div>
-          {% elif recent_files %}
-          <div class="action-buttons" id="actionButtons">
-              {% for file in recent_files %}
-                <a class="btn btn-primary" href="{{ url_for('download_file', filename=file) }}">
-                  <i class="fas fa-download"></i> Download {{ file }}
+            <div class="action-buttons" id="actionButtons">
+                <a class="btn btn-primary" href="{{ url_for('download_file', filename=latest_file) }}">
+                  <i class="fas fa-download"></i> Download {{ latest_file }}
                 </a>
-              {% endfor %}
             </div>
           {% endif %}
-          {% endif %}
+
+
+
+
           <button type="submit" class="btn btn-primary" id="submitBtn"
                   aria-label="Generate Instructional Script"
                   {% if disable_submit %}disabled title="Upgrade to premium to upload more files."{% endif %}>
